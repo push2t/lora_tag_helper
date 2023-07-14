@@ -135,6 +135,9 @@ def main(args):
         features = json.loads(args.features_json_raw)
         features_whitelist = index_features(features)
 
+    if not len(features_whitelist):
+        raise ValueError("whitelist empty, something wrong")
+
     print("Feature promotion whitelist calculated:\n%s" % (features_whitelist))
     do_folder(args.in_folder, args.out_folder, features_whitelist)
 
