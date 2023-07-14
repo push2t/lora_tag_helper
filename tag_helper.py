@@ -3262,13 +3262,22 @@ class dataset_viewer(object):
 
         self.info_box_item_count = 0
 
-        self.selection_count_text = tk.StringVar(None)
-        self.selection_count_text.set("Selected: 1/34")
+        self.selected_count_text = tk.StringVar(None)
+        self.selected_count_text.set("Selected: 0/0")
         self.target_tag = tk.Label(self.info_box,
                                    #text= "Selected: 1/34",
-                                    textvariable= self.selection_count_text, 
+                                    textvariable= self.selected_count_text, 
                                     justify="right")
         self.target_tag.grid(row=0, column= self.info_box_item_count, padx=4, pady=2, sticky="nsew")
+
+        self.info_box_item_count += 1
+        self.visible_count_text = tk.StringVar(None)
+        self.visible_count_text.set("Visible: 0/0")
+        self.visible_target_tag = tk.Label(self.info_box,
+                                    textvariable= self.visible_count_text, 
+                                    justify="right")
+        self.visible_target_tag.grid(row=0, column=self.info_box_item_count, padx=4, pady=2, sticky="nsew")
+
         
         self.directory_frame = DynamicGrid(self.form_frame, width=500, height=200)
         self.directory_frame.grid(row=1, column=0, padx= 2, pady=2, sticky="nsew")
@@ -3282,6 +3291,9 @@ class dataset_viewer(object):
         self.clear_entries()
         for index, file in enumerate(self.parent.image_files):
             self.add_ui_entry(file, index)
+
+        self.update_selection_info()
+        self.update_visible_info()
 
     def close_dataset(self):
         self.clear_entries()
@@ -3304,8 +3316,17 @@ class dataset_viewer(object):
         print(iid + " {action} ".format(action="added to" if remove else "removed from")
                + basename(entry.file))
 
+    def update_visible_info(self):
+        visible_count = len(list(filter(lambda e: not e.hidden, self.ui_entries)))
+
+        self.visible_count_text.set( "Visible: " +
+            str(visible_count) +
+            "/" +
+            str(len(self.ui_entries))
+        )
+
     def update_selection_info(self):
-        self.selection_count_text.set( "Selected: " +
+        self.selected_count_text.set( "Selected: " +
             str(len(self.selected_entries)) +
             "/" +
             str(len(self.ui_entries))
@@ -3519,12 +3540,19 @@ class dataset_viewer(object):
             if entry.index not in entries_to_display:
                 entry.hide_image(True)
 
+        self.update_visible_info()
+
     def hide_selection(self,event=None):    
         for entry in self.selected_entries:
             entry.hide_image(True)
+
+        self.update_visible_info()
+
     def show_hidden(self,event=None):    
         for entry in self.ui_entries:
             entry.hide_image(False)
+        
+        self.update_visible_info()
 
     #endregion
     def on_close(self):
