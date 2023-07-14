@@ -1,0 +1,15 @@
+{
+    "window_states": [],
+    "interrogator_settings": {
+        "interrogator_options_pick": 0,
+        "wd14_settings": {
+            "model_wd14_pick": "wd14-vit-v2-git",
+            "general_threshold": 0.35
+        },
+        "clip_settings": {
+            "model_clip_pick": "ViT-L-14/openai",
+            "model_blip_pick": "",
+            "mode": "caption"
+        }
+    }
+}

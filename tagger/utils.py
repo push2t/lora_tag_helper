@@ -5,7 +5,6 @@ from pathlib import Path
 
 import tagger.interrogator
 from tagger.interrogator import Interrogator, DeepDanbooruInterrogator, WaifuDiffusionInterrogator
-
 interrogators: Dict[str, Interrogator] = {}
 
 
