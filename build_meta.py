@@ -66,6 +66,16 @@ def main(args):
     
     superset = collapse_superset(superset)
 
+    result = {
+        "author": "build_meta.py",
+        "features": superset,
+        "automatic tags": "",
+    }
+
+    with open(args.out_file, "w") as fh:
+        fh.write(json.dumps(result))
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
