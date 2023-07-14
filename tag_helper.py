@@ -19,7 +19,8 @@ import tkinter.font
 import tkinter as tk
 from tkinter import ttk
 import pynput
-from pprint import pprint
+from pprint import pprint, pformat
+from functools import partial
 
 import spacy
 
@@ -3245,8 +3246,8 @@ class dataset_viewer(object):
 
     def open_dataset(self):
         self.clear_entries()
-        for file in self.parent.image_files:
-            self.add_ui_entry(file)
+        for index, file in enumerate(self.parent.image_files):
+            self.add_ui_entry(file, index)
 
     def close_dataset(self):
         self.clear_entries()
@@ -3277,9 +3278,11 @@ class dataset_viewer(object):
         )
 
     #region entry functions
-    def add_ui_entry(self,file = None):
+    # awas: i'm not sure under what circumstances file parameter is optional to this method
+    # can it ever be none?
+    def add_ui_entry(self, file = None, index = None):
         box = self.directory_frame.add_box()
-        ui_entry = dv_file_entry(box,self,file,self.thumb_resolution_choices[self.thumb_resolution_pick])
+        ui_entry = dv_file_entry(box, self, file, index, self.thumb_resolution_choices[self.thumb_resolution_pick])
         self.ui_entries.append(ui_entry)
 
     def remove_entry(self, ui_entry, order = True):
@@ -3296,7 +3299,7 @@ class dataset_viewer(object):
         menu_options = []
         menu_options.append(context_menu_option_data("Delete", self.delete_file))
         menu_options.append(context_menu_option_data("Rename", self.rename_file))
-        menu_options.append(context_menu_option_data("test", self.rename_file))
+        menu_options.append(context_menu_option_data("Debug State", partial(self.popup_registry_debug, entry)))
         menu_options.append(context_menu_option_data("test2", self.rename_file))
         menu_options.append(context_menu_option_data("test2", self.rename_file))
         menu_options.append(context_menu_option_data("test2", self.rename_file))
@@ -3319,7 +3322,7 @@ class dataset_viewer(object):
         self.ctrl_pressed = False
         self.alt_pressed = False
         self.shift_pressed = False
-        
+
         if(len(self.selected_entries) > 0):
             if(self.parent.ctrl_pressed):              
                 if(entry.selected):
@@ -3389,6 +3392,20 @@ class dataset_viewer(object):
             self.select_all_entries()
         self.update_selection_info()
 
+    def popup_registry_debug(self, entry):
+
+        popup = tk.Tk()
+        popup.wm_title("debug state view")
+        popup.geometry("500x300")
+        _msg = pformat(json.dumps(self.parent.shadow_registry[entry.index]), width=80, sort_dicts=False)
+        label = ttk.Label(popup, text=_msg)
+        label.place(relx=.5, rely=.5, anchor="center")
+
+        __import__("IPython").embed()
+
+        
+
+    
     def shift_select(self,entry):
         if(self.ui_entries.index(self.last_selected_entry) < self.ui_entries.index(entry)):
             from_index = self.ui_entries.index(self.last_selected_entry)
@@ -3433,10 +3450,11 @@ class dataset_viewer(object):
         self.parent.dataset_viewer_window = None
           
 class dv_file_entry(object):
-    def __init__(self, container, dv, file,size):
+    def __init__(self, container, dv, file, index, size):
         self.parent = container
         self.dv = dv
         self.file = file
+        self.index = index
         self.selected = False
         self.hidden = False
         self.size = size
