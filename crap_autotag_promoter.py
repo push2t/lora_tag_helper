@@ -39,7 +39,7 @@ def do_folder(path, out_path, features_whitelist):
             continue
 
         json_data = load_json(json_file)
-
+        
         new_features, new_auto_components = promote_features(auto_components, features_whitelist)
 
         _features = {}
@@ -75,6 +75,13 @@ def load_json(path):
     try:
         with open(path, "r") as fh:
             d = json.load(fh)
+
+            if "artist" not in d:
+                d["artist"] = "unknown"
+            if "features" not in d:
+                d["features"] = {}
+            if "automatic tags" not in d:
+                d["automatic tags"] = ""
             return d
     except FileNotFoundError:
         return {
