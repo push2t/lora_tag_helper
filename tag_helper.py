@@ -21,6 +21,7 @@ from tkinter import ttk
 import pynput
 from pprint import pprint, pformat
 from functools import partial
+import re
 
 import spacy
 
@@ -3223,9 +3224,11 @@ class dataset_viewer(object):
         self.deselect_guard_checkbox.grid(row=0, column=self.controls_box_item_count, padx=4, pady=2, sticky="nsew")
 
         self.controls_box_item_count += 1
-        self.feature_filter_box = tk.Listbox(self.controls_box, selectmode=tk.MULTIPLE)
-        for _i, _filter in enumerate(self.feature_index_filter()):
-            self.feature_filter_box.insert(_i, _filter)
+        self.feature_filter_box = tk.Listbox(self.controls_box, selectmode=tk.MULTIPLE, width=40)
+
+        filters, filter_hit_count = self.feature_index_filter()
+        for _i, _filter in enumerate(filters):
+            self.feature_filter_box.insert(_i, "%s (%d)" % (_filter, filter_hit_count[_filter]))
         self.feature_filter_box.grid(row=0, column=self.controls_box_item_count, padx=4, pady=2, sticky="nsew")
 
         self.controls_box_item_count += 1
@@ -3429,19 +3432,33 @@ class dataset_viewer(object):
         self.update_selection_info()
 
 
-    # walk feature_index_ to see what our unique category -> feature combinations are
+    # walk feature_index to see what our unique category -> feature combinations are
     # then render them as a filtering thingy? think this through ok
     def feature_index_filter(self):
 
+        _hit_count = {}
         filters = []
         for cat, descs in self.parent.feature_index.items():
             for desc in descs.keys():
-                filters.append("→".join((cat, desc)))
-        return filters
+                _key = "→".join((cat, desc))
+
+                # track how many files match this permutation
+                if _key not in _hit_count:
+                    _hit_count[_key] = set()
+                _hit_count[_key].update(descs[desc])
+
+                filters.append(_key)
+
+        # aggregate hit_counts
+        hit_count = {}
+        for _key in _hit_count:
+            hit_count[_key] = len(_hit_count[_key])
+
+        return filters, hit_count
 
     def popup_registry_debug(self, entry):
 
-        __import__("IPython").embed()
+        #__import__("IPython").embed()
 
         popup = tk.Tk()
         popup.wm_title("debug state view")
@@ -3449,7 +3466,6 @@ class dataset_viewer(object):
         _msg = pformat(json.dumps(self.parent.shadow_registry[entry.index]), width=80, sort_dicts=False)
         label = ttk.Label(popup, text=_msg)
         label.place(relx=.5, rely=.5, anchor="center")
-
 
     
     def shift_select(self,entry):
@@ -3484,13 +3500,17 @@ class dataset_viewer(object):
         #self.directory_frame.update_grid()
 
     def apply_feature_filters(self, filters_stringy):
-        print("i would apply: ", filters_stringy)
 
         entries_to_display = set()
-        for sel in filters_stringy:
+        for _sel in filters_stringy:
+
+            # remove the hit count from the filter.
+            # this is highly questionable design but eh.
+            sel = re.sub('\s+\(\d+\)$', '', _sel)
+
             cat, feature = sel.split("→")
             if not cat in self.parent.feature_index or not feature in self.parent.feature_index[cat]:
-                raise ValueError("wtf, tried to filter on feature that isnt in index")
+                raise ValueError("wtf, tried to filter on feature that isnt in index: cat %s feature %s" % (cat,feature))
             for entry in self.parent.feature_index[cat][feature]:
                 entries_to_display.add(entry)
 
