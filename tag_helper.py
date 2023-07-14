@@ -3214,6 +3214,13 @@ class dataset_viewer(object):
         #self.search_bar = tk.Entry(self.controls_box,textvariable=self.search_text, justify="left")
         #self.search_bar.grid(row=0, column=0, padx=(0, 5), pady=5, sticky="ew")
 
+        # checkbox to enable deselection guard
+        self.controls_box_item_count += 1
+        self.deselect_guard_var = tk.IntVar()
+        self.deselect_guard_var.set(1)
+        self.deselect_guard_checkbox = tk.Checkbutton(self.controls_box, text="Guard De-selection", variable=self.deselect_guard_var)
+        self.deselect_guard_checkbox.grid(row=0, column=self.controls_box_item_count, padx=4, pady=2, sticky="nsew")
+
         self.info_box = tk.Frame(self.task_bar, borderwidth=2,relief='groove')#,text="controls")
         #self.info_box.grid(row=0,column=1, padx=2, pady=1, sticky="nsew")
         self.info_box.pack(side="right")#,anchor= "e")
@@ -3323,16 +3330,18 @@ class dataset_viewer(object):
                 self.shift_select(entry)
             else:
 
-                # guard against clearing a large selection set
+                # guard against clearing a large selection set if option selected
                 # with dialogue confirmation, save misclick
                 # from erroneously clearing a manually curated selectio set!
                 answer_can_clear = True
-                if(len(self.selected_entries) > 1):
-                    answer_can_clear = askyesno(
-                        parent=self.top,
-                        title='Replace multi-selection',
-                        message='Multiple entries selected will be cleared by this action, Continue?'
-                    )
+
+                if self.deselect_guard_var.get():
+                    if(len(self.selected_entries) > 1):
+                        answer_can_clear = askyesno(
+                            parent=self.top,
+                            title='Replace multi-selection',
+                            message='Multiple entries selected will be cleared by this action, Continue?'
+                        )
 
                 if answer_can_clear:
                     # todo: im not sure what this branch is for but harmless
