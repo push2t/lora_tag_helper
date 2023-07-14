@@ -2,11 +2,13 @@ import argparse
 import json
 import pathlib
 from PIL import Image
-from os.path import isfile, join, splitext
+from os import makedirs
+from os.path import isfile, join, splitext, exists, split
+import shutil
 
 from collections import OrderedDict
 
-def do_folder(path, features_whitelist):
+def do_folder(path, out_path, features_whitelist):
     #Get supported extensions
     exts = Image.registered_extensions()
     supported_exts = {ex for ex, f in exts.items() if f in Image.OPEN}
@@ -20,6 +22,8 @@ def do_folder(path, features_whitelist):
         f for f in files if splitext(f)[1] in supported_exts]  
 
     image_files.sort()
+
+    makedirs(out_path, exist_ok=False)
 
     # for each image file
     # try to load .txt automatic caption  and .json 
@@ -38,9 +42,32 @@ def do_folder(path, features_whitelist):
 
         new_features, new_auto_components = promote_features(auto_components, features_whitelist)
 
+        _features = {}
+        for (feature,category) in new_features:
+            if category not in _features:
+                _features[category] = []
+                _features[category].append(feature)
 
-        __import__("IPython").embed()
-        raise  ValueError("")
+        for category, features in _features.items():
+            json_data["features"][category] = ", ".join(features)
+
+        json_data["automatic tags"] = ", ".join(new_auto_components)
+
+        print("copying image file %s to %s" % (f, out_path))
+        shutil.copy(f, out_path)
+
+
+        new_txt_path = join(out_path, split(txt_file)[1])
+        new_json_path = join(out_path, split(json_file)[1])
+
+        print("writing new .txt to %s" % (new_txt_path))
+        with open(new_txt_path, "w") as _f:
+            _f.write(json_data["automatic tags"])
+
+
+        print("writing new .json to %s" % (new_json_path))
+        with open(new_json_path, "w") as _f:
+            _f.write(json.dumps(json_data))
 
 
 
@@ -56,16 +83,17 @@ def load_json(path):
             "automatic tags": "",
         }
 
-def index_features(features):
-    r = {}
+def index_features(features, wl=None):
+    if not wl:
+        wl = {}
     for cat, featuretxt in features.items():
         if not featuretxt:
             continue
         features = [c.strip() for c in featuretxt.split(",")]
         for f in features:
-            r[f] = cat
+            wl[f] = cat
 
-    return r
+    return wl
 
 def load_automated(path):
     with open(path, "r") as fh:
@@ -90,19 +118,31 @@ def promote_features(auto_components, features_whitelist):
     return (list(new_features), list(new_components.keys()))
 
 def main(args):
-    features = load_json(args.existing_json_example)["features"]
-    features_whitelist = index_features(features)
 
-    do_folder(args.in_folder, features_whitelist)
+    features_whitelist = {}
+    for ex in args.existing_json_examples:
+        features = load_json(ex)["features"]
+        features_whitelist = index_features(features)
 
-    pass
+    if args.features_json_raw:
+        features = json.loads(args.features_json_raw)
+        features_whitelist = index_features(features)
+
+    print("Feature promotion whitelist calculated:\n%s" % (features_whitelist))
+    do_folder(args.in_folder, args.out_folder, features_whitelist)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--existing_json_example",
+        "--existing_json_examples",
+        action="append",
         required=True,
         help="We read category -> feature from this, so use an existing tagged file"
+    )
+
+    parser.add_argument(
+        "--features_json_raw",
+        help='give me a json string that would go under features in a file, i.e. {"category": "feature1, feature2"} and we will include it in whitelist',
     )
 
     parser.add_argument(
@@ -113,8 +153,13 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--out_folder",
+        required=True,
         help="write our resutls here"
     )
 
     args = parser.parse_args()
+
+    if exists(args.out_folder):
+        raise ValueError("--out_folder '%s' exists, give me a fresh folder" % (args.out_folder))
+
     main(args)
