@@ -3679,7 +3679,7 @@ class ui_theme_manager(object):
         self.current_theme = "dark"
         self.themes = {
             "default": { "background": "Grey75", "entry": "Grey75"},
-             "dark": { "background": "Grey22", "entry": "Grey26","entry_selected": "Grey14","text": "Grey90","text_disabled": "Grey42"}
+             "dark": { "background": "Grey22", "entry": "Grey26","entry_selected": "chartreuse4","text": "Grey90","text_disabled": "Grey42"}
         }
         
         # self.themes.append(
