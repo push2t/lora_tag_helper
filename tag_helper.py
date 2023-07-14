@@ -3335,6 +3335,7 @@ class dataset_viewer(object):
                 # from erroneously clearing a manually curated selectio set!
                 answer_can_clear = True
 
+                __import__("IPython").embed()
                 if self.deselect_guard_var.get():
                     if(len(self.selected_entries) > 1):
                         answer_can_clear = askyesno(
@@ -3895,6 +3896,11 @@ class lora_tag_helper(TkinterDnD.Tk):
         self.listener.start()
         self.update()
         self.after(1000, self.import_reqs)
+
+        # awas
+        # prototype of shadow copy of data contained in each image_files json
+        # this will need synchronisation and such, think about that.
+        self.shadow_registry = []
 
     def import_reqs(self, event = None):
         try:
@@ -4989,6 +4995,19 @@ class lora_tag_helper(TkinterDnD.Tk):
         self.update_idletasks()
         
       
+    def init_shadow_registry(self):
+
+        if not len(self.shadow_registry):
+            self.shadow_registry = [None] * len(self.image_files)
+
+    # synchronise in memory shadow registry from json on disk
+    # awas 
+    def update_shadow_registry(self, index, item=None):
+        if not item:
+            item = self.get_item_from_file(self.image_files[index])
+
+        self.shadow_registry[index] = item
+        return item
 
     #Gather known feature set
     def update_known_features(self, file, item):
@@ -5132,12 +5151,20 @@ class lora_tag_helper(TkinterDnD.Tk):
 
         self.image_files.sort()
 
+        self.init_shadow_registry()
+
         #Populate JSONs
-        for path in self.image_files:
+        for index, path in enumerate(self.image_files):
             #json_file = splitext(path)[0] + ".json"
             item = self.get_item_from_file(path)
             self.update_known_features(path, item)
             #self.write_item_to_file(item, json_file)
+
+            # awas, inflate shadow registry here
+            self.update_shadow_registry(index, item)
+
+        __import__("IPython").embed()
+            
         self.build_known_feature_checklists()
 
         #Point UI to beginning of queue
