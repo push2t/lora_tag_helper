@@ -3223,15 +3223,15 @@ class dataset_viewer(object):
         self.deselect_guard_checkbox = tk.Checkbutton(self.controls_box, text="Guard De-selection", variable=self.deselect_guard_var)
         self.deselect_guard_checkbox.grid(row=0, column=self.controls_box_item_count, padx=4, pady=2, sticky="nsew")
 
-        self.controls_box_item_count += 1
+        self.controls_box_filter_item_count = 0
         self.feature_filter_box = tk.Listbox(self.controls_box, selectmode=tk.MULTIPLE, width=40)
 
         filters, filter_hit_count = self.feature_index_filter()
         for _i, _filter in enumerate(filters):
             self.feature_filter_box.insert(_i, "%s (%d)" % (_filter, filter_hit_count[_filter]))
-        self.feature_filter_box.grid(row=0, column=self.controls_box_item_count, padx=4, pady=2, sticky="nsew")
+        self.feature_filter_box.grid(row=1, column=self.controls_box_filter_item_count, padx=4, pady=2, sticky="nsew")
 
-        self.controls_box_item_count += 1
+        self.controls_box_filter_item_count += 1
 
         # when press feature filter apply button, capture current multi selection
         # and save its stringy form into self.feature_filter_selections list
@@ -3253,7 +3253,19 @@ class dataset_viewer(object):
             command=_capture_feature_filters_selection
         )
 
-        self.feature_filter_apply.grid(row=0, column=self.controls_box_item_count, padx=4, pady=2, sticky="nsew")
+        self.feature_filter_apply.grid(row=1, column=self.controls_box_filter_item_count, padx=4, pady=2, sticky="nsew")
+
+        self.controls_box_filter_item_count += 1
+        def _clear_feature_filters_selection():
+            self.feature_filter_selections = []
+            self.feature_filter_box.selection_clear(0, tk.END)
+
+        self.feature_filter_clear = tk.Button(
+            self.controls_box,
+            text="Clear feature filters",
+            command=_clear_feature_filters_selection,
+        )
+        self.feature_filter_clear.grid(row=1, column=self.controls_box_filter_item_count, padx=4, pady=2, sticky="nsew")
 
 
         self.info_box = tk.Frame(self.task_bar, borderwidth=2,relief='groove')#,text="controls")
@@ -3522,6 +3534,10 @@ class dataset_viewer(object):
 
     def apply_feature_filters(self, filters_stringy):
 
+        if not len(filters_stringy):
+            return
+
+        AND_entries = {}
         entries_to_display = set()
         for _sel in filters_stringy:
 
@@ -3529,11 +3545,26 @@ class dataset_viewer(object):
             # this is highly questionable design but eh.
             sel = re.sub('\s+\(\d+\)$', '', _sel)
 
+            # track which entries passed for this filter
+            AND_entries[sel] = set()
+
             cat, feature = sel.split("→")
             if not cat in self.parent.feature_index or not feature in self.parent.feature_index[cat]:
                 raise ValueError("wtf, tried to filter on feature that isnt in index: cat %s feature %s" % (cat,feature))
             for entry in self.parent.feature_index[cat][feature]:
+
+                # add to set of entries that passed *this* filter
+                AND_entries[sel].add(entry)
+
+                # add to set of entries that passed *any* filter
                 entries_to_display.add(entry)
+
+
+        # filter entries_to_display (which contains *all* matches currently) down 
+        # to only entries that matched in every individual filter.
+        # so an AND logic
+        for ss in AND_entries.values():
+            entries_to_display.intersection_update(ss)
 
         # walk every entry and hide those that arent in entries_to_display
         for entry in self.ui_entries:
