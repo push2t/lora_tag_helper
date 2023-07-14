@@ -3235,11 +3235,14 @@ class dataset_viewer(object):
         self.deselect_guard_checkbox.grid(row=0, column=self.controls_box_item_count, padx=4, pady=2, sticky="nsew")
 
         self.controls_box_item_count += 1
-        self.feature_filter_box = tk.Listbox(self.controls_box, selectmode=tk.MULTIPLE, width=40)
-        filters, filter_hit_count = self.feature_index_filter()
-        for _i, _filter in enumerate(filters):
-            self.feature_filter_box.insert(_i, "%s (%d)" % (_filter, filter_hit_count[_filter]))
-        self.feature_filter_box.grid(row=0, column=self.controls_box_item_count, padx=4, pady=2, sticky="nsew")
+
+        self.do_feature_filter_box()
+
+        #self.feature_filter_box = tk.Listbox(self.controls_box, selectmode=tk.MULTIPLE, width=40)
+        #filters, filter_hit_count = self.feature_index_filter()
+        #for _i, _filter in enumerate(filters):
+        #    self.feature_filter_box.insert(_i, "%s (%d)" % (_filter, filter_hit_count[_filter]))
+        #self.feature_filter_box.grid(row=0, column=self.controls_box_item_count, padx=4, pady=2, sticky="nsew")
 
         self.controls_box_item_count += 1
 
@@ -3328,6 +3331,9 @@ class dataset_viewer(object):
         self.parent.set_ui(selected_entry)
         self.parent.file_index = selected_entry
 
+        # redraw the feature filter box, because we probably just changed its item count
+        self.do_feature_filter_box()
+
     def apply_feature(self,iid,remove,entry):
 
         file_index = self.parent.image_files.index(entry.file)
@@ -3353,6 +3359,17 @@ class dataset_viewer(object):
             "/" +
             str(len(self.ui_entries))
         )
+
+    def do_feature_filter_box(self):
+        # capture current state of this and keep it
+        if not hasattr(self,"_filter_box_idx"):
+            self._filter_box_idx = self.controls_box_item_count
+
+        self.feature_filter_box = tk.Listbox(self.controls_box, selectmode=tk.MULTIPLE, width=40)
+        filters, filter_hit_count = self.feature_index_filter()
+        for _i, _filter in enumerate(filters):
+            self.feature_filter_box.insert(_i, "%s (%d)" % (_filter, filter_hit_count[_filter]))
+        self.feature_filter_box.grid(row=0, column=self._filter_box_idx, padx=4, pady=2, sticky="nsew")
 
     #region entry functions
     # awas: i'm not sure under what circumstances file parameter is optional to this method
@@ -3497,11 +3514,13 @@ class dataset_viewer(object):
         for _key in _hit_count:
             hit_count[_key] = len(_hit_count[_key])
 
+        # sort filters alnum
+        filters = sorted(filters)
         return filters, hit_count
 
     def popup_registry_debug(self, entry):
 
-        #__import__("IPython").embed()
+        __import__("IPython").embed()
 
         popup = tk.Tk()
         popup.wm_title("debug state view")
@@ -3582,6 +3601,9 @@ class dataset_viewer(object):
                 entry.hide_image(True)
 
         self.update_visible_info()
+
+        # trigger redraw of the feature list
+        self.do_feature_filter_box()
 
     def invert_selection(self, event=None):
         if len(self.selected_entries):
@@ -5179,6 +5201,8 @@ class lora_tag_helper(TkinterDnD.Tk):
     # and now it isnt, that information is no longer in the shadow registry and we cant really remove
     # it.
     def rebuild_feature_index(self):
+        self.feature_index = {}
+
         for i, sr in enumerate(self.shadow_registry):
             if not sr or not "features" in sr or not len(sr["features"].keys()):
                 continue
@@ -5843,6 +5867,7 @@ class lora_tag_helper(TkinterDnD.Tk):
             splitext(file)[0] + ".json")
 
         self.update_shadow_registry(self.file_index, trimmed_item)
+
         # rebuild the feature index. not very efficient
         self.rebuild_feature_index()
         self.update_known_feature_checklists()
@@ -6134,6 +6159,10 @@ class lora_tag_helper(TkinterDnD.Tk):
             item = self.get_item_from_ui()
             trimmed_item = {x:item[x] for x in item if x in defaults and item[x] != defaults[x]}
             self.write_item_to_file(trimmed_item, json_file)
+            self.update_known_feature_checklists()
+
+            # rebuild the feature index. not very efficient
+            self.rebuild_feature_index()
             self.update_known_feature_checklists()
 
     def select_all(self, event):
