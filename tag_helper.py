@@ -3322,12 +3322,26 @@ class dataset_viewer(object):
             elif(self.parent.shift_pressed and not self.last_selected_entry == None):
                 self.shift_select(entry)
             else:
-                if(entry.selected):
-                    self.deselect_all_entries()
-                    self.select_entry(entry)
-                else:
-                    self.deselect_all_entries()
-                    self.select_entry(entry)
+
+                # guard against clearing a large selection set
+                # with dialogue confirmation, save misclick
+                # from erroneously clearing a manually curated selectio set!
+                answer_can_clear = True
+                if(len(self.selected_entries) > 1):
+                    answer_can_clear = askyesno(
+                        parent=self.top,
+                        title='Replace multi-selection',
+                        message='Multiple entries selected will be cleared by this action, Continue?'
+                    )
+
+                if answer_can_clear:
+                    # todo: im not sure what this branch is for but harmless
+                    if(entry.selected):
+                        self.deselect_all_entries()
+                        self.select_entry(entry)
+                    else:
+                        self.deselect_all_entries()
+                        self.select_entry(entry)
         else:
             self.select_entry(entry)
 
