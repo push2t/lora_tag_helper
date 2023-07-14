@@ -3335,7 +3335,6 @@ class dataset_viewer(object):
                 # from erroneously clearing a manually curated selectio set!
                 answer_can_clear = True
 
-                __import__("IPython").embed()
                 if self.deselect_guard_var.get():
                     if(len(self.selected_entries) > 1):
                         answer_can_clear = askyesno(
@@ -5163,8 +5162,6 @@ class lora_tag_helper(TkinterDnD.Tk):
             # awas, inflate shadow registry here
             self.update_shadow_registry(index, item)
 
-        __import__("IPython").embed()
-            
         self.build_known_feature_checklists()
 
         #Point UI to beginning of queue
@@ -5638,6 +5635,8 @@ class lora_tag_helper(TkinterDnD.Tk):
         self.write_item_to_file(
             trimmed_item,
             splitext(file)[0] + ".json")
+
+        self.update_shadow_registry(self.file_index, trimmed_item)
         self.update_known_feature_checklists()
 
     def autosave_toggle(self):
