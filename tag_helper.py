@@ -3391,6 +3391,11 @@ class dataset_viewer(object):
         self.update_selection_info()
 
     def select_entry(self,entry):
+
+        # do not select an entry if its image is hidden
+        if entry.hidden:
+            return
+
         self.last_selected_entry = entry
         self.selected_entries.append(entry)
         entry.select()
@@ -3492,7 +3497,6 @@ class dataset_viewer(object):
         # walk every entry and hide those that arent in entries_to_display
         for entry in self.ui_entries:
             if entry.index not in entries_to_display:
-                # awas hide it properly cunt
                 entry.hide_image(True)
 
     def hide_selection(self,event=None):    
