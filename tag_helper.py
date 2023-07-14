@@ -3223,11 +3223,34 @@ class dataset_viewer(object):
         self.deselect_guard_checkbox.grid(row=0, column=self.controls_box_item_count, padx=4, pady=2, sticky="nsew")
 
         self.controls_box_item_count += 1
-        self.feature_filter = tk.Listbox(self.controls_box, selectmode=tk.MULTIPLE)
+        self.feature_filter_box = tk.Listbox(self.controls_box, selectmode=tk.MULTIPLE)
         for _i, _filter in enumerate(self.feature_index_filter()):
-            self.feature_filter.insert(_i, _filter)
-        self.feature_filter.grid(row=0, column=self.controls_box_item_count, padx=4, pady=2, sticky="nsew")
-#        self.feature_filter.pack(expand=True, fill=tk.BOTH)
+            self.feature_filter_box.insert(_i, _filter)
+        self.feature_filter_box.grid(row=0, column=self.controls_box_item_count, padx=4, pady=2, sticky="nsew")
+
+        self.controls_box_item_count += 1
+
+        # when press feature filter apply button, capture current multi selection
+        # and save its stringy form into self.feature_filter_selections list
+        # then apply that to the dv
+        def _capture_feature_filters_selection():
+            # init this as empty, we'll write over it.
+            self.feature_filter_selections = []
+
+            selection = self.feature_filter_box.curselection()
+            for _i in selection:
+                selected_item = self.feature_filter_box.get(_i)
+                self.feature_filter_selections.append(selected_item)
+
+            self.apply_feature_filters(self.feature_filter_selections)
+
+        self.feature_filter_apply = tk.Button(
+            self.controls_box,
+            text="Apply feature filters",
+            command=_capture_feature_filters_selection
+        )
+
+        self.feature_filter_apply.grid(row=0, column=self.controls_box_item_count, padx=4, pady=2, sticky="nsew")
 
 
         self.info_box = tk.Frame(self.task_bar, borderwidth=2,relief='groove')#,text="controls")
@@ -3454,6 +3477,23 @@ class dataset_viewer(object):
         for entry in self.ui_entries:
             entry.set_thumb_size(self.thumb_resolution_choices[self.thumb_resolution_pick])
         #self.directory_frame.update_grid()
+
+    def apply_feature_filters(self, filters_stringy):
+        print("i would apply: ", filters_stringy)
+
+        entries_to_display = set()
+        for sel in filters_stringy:
+            cat, feature = sel.split("→")
+            if not cat in self.parent.feature_index or not feature in self.parent.feature_index[cat]:
+                raise ValueError("wtf, tried to filter on feature that isnt in index")
+            for entry in self.parent.feature_index[cat][feature]:
+                entries_to_display.add(entry)
+
+        # walk every entry and hide those that arent in entries_to_display
+        for entry in self.ui_entries:
+            if entry.index not in entries_to_display:
+                # awas hide it properly cunt
+                entry.hide_image(True)
 
     def hide_selection(self,event=None):    
         for entry in self.selected_entries:
