@@ -5329,7 +5329,7 @@ class lora_tag_helper(TkinterDnD.Tk):
             try:
                 self.path = tk.filedialog.askdirectory(
                     parent=self, 
-                    initialdir="./dataset",
+                    #initialdir="./dataset",
                     title="Select a dataset")
                 if not self.path:
                     return
