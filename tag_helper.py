@@ -3223,13 +3223,13 @@ class dataset_viewer(object):
         self.deselect_guard_checkbox = tk.Checkbutton(self.controls_box, text="Guard De-selection", variable=self.deselect_guard_var)
         self.deselect_guard_checkbox.grid(row=0, column=self.controls_box_item_count, padx=4, pady=2, sticky="nsew")
 
-        self.controls_box_filter_item_count = 0
+        self.controls_box_filter_item_count = self.controls_box_item_count
         self.feature_filter_box = tk.Listbox(self.controls_box, selectmode=tk.MULTIPLE, width=40)
 
         filters, filter_hit_count = self.feature_index_filter()
         for _i, _filter in enumerate(filters):
             self.feature_filter_box.insert(_i, "%s (%d)" % (_filter, filter_hit_count[_filter]))
-        self.feature_filter_box.grid(row=1, column=self.controls_box_filter_item_count, padx=4, pady=2, sticky="nsew")
+        self.feature_filter_box.grid(row=0, column=self.controls_box_filter_item_count, padx=4, pady=2, sticky="nsew")
 
         self.controls_box_filter_item_count += 1
 
@@ -3253,7 +3253,7 @@ class dataset_viewer(object):
             command=_capture_feature_filters_selection
         )
 
-        self.feature_filter_apply.grid(row=1, column=self.controls_box_filter_item_count, padx=4, pady=2, sticky="nsew")
+        self.feature_filter_apply.grid(row=0, column=self.controls_box_filter_item_count, padx=4, pady=2, sticky="nsew")
 
         self.controls_box_filter_item_count += 1
         def _clear_feature_filters_selection():
@@ -3265,7 +3265,7 @@ class dataset_viewer(object):
             text="Clear feature filters",
             command=_clear_feature_filters_selection,
         )
-        self.feature_filter_clear.grid(row=1, column=self.controls_box_filter_item_count, padx=4, pady=2, sticky="nsew")
+        self.feature_filter_clear.grid(row=0, column=self.controls_box_filter_item_count, padx=4, pady=2, sticky="nsew")
 
 
         self.info_box = tk.Frame(self.task_bar, borderwidth=2,relief='groove')#,text="controls")
