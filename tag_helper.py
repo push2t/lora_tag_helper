@@ -3222,6 +3222,14 @@ class dataset_viewer(object):
         self.deselect_guard_checkbox = tk.Checkbutton(self.controls_box, text="Guard De-selection", variable=self.deselect_guard_var)
         self.deselect_guard_checkbox.grid(row=0, column=self.controls_box_item_count, padx=4, pady=2, sticky="nsew")
 
+        self.controls_box_item_count += 1
+        self.feature_filter = tk.Listbox(self.controls_box, selectmode=tk.MULTIPLE)
+        for _i, _filter in enumerate(self.feature_index_filter()):
+            self.feature_filter.insert(_i, _filter)
+        self.feature_filter.grid(row=0, column=self.controls_box_item_count, padx=4, pady=2, sticky="nsew")
+#        self.feature_filter.pack(expand=True, fill=tk.BOTH)
+
+
         self.info_box = tk.Frame(self.task_bar, borderwidth=2,relief='groove')#,text="controls")
         #self.info_box.grid(row=0,column=1, padx=2, pady=1, sticky="nsew")
         self.info_box.pack(side="right")#,anchor= "e")
@@ -3392,7 +3400,20 @@ class dataset_viewer(object):
             self.select_all_entries()
         self.update_selection_info()
 
+
+    # walk feature_index_ to see what our unique category -> feature combinations are
+    # then render them as a filtering thingy? think this through ok
+    def feature_index_filter(self):
+
+        filters = []
+        for cat, descs in self.parent.feature_index.items():
+            for desc in descs.keys():
+                filters.append("→".join((cat, desc)))
+        return filters
+
     def popup_registry_debug(self, entry):
+
+        __import__("IPython").embed()
 
         popup = tk.Tk()
         popup.wm_title("debug state view")
@@ -3401,9 +3422,6 @@ class dataset_viewer(object):
         label = ttk.Label(popup, text=_msg)
         label.place(relx=.5, rely=.5, anchor="center")
 
-        __import__("IPython").embed()
-
-        
 
     
     def shift_select(self,entry):
@@ -3918,6 +3936,7 @@ class lora_tag_helper(TkinterDnD.Tk):
         # prototype of shadow copy of data contained in each image_files json
         # this will need synchronisation and such, think about that.
         self.shadow_registry = []
+        self.feature_index = {}
 
     def import_reqs(self, event = None):
         try:
@@ -5012,8 +5031,29 @@ class lora_tag_helper(TkinterDnD.Tk):
         self.update_idletasks()
         
       
-    def init_shadow_registry(self):
+    # walk over shadow registry and build an index of feature -> file index
+    # note: i dont think you can do a partial update of this, we need to rebuild the entire
+    # index whenver something has changed, because if a file used to be pointed to by feature A
+    # and now it isnt, that information is no longer in the shadow registry and we cant really remove
+    # it.
+    def rebuild_feature_index(self):
+        for i, sr in enumerate(self.shadow_registry):
+            if not sr or not "features" in sr or not len(sr["features"].keys()):
+                continue
 
+            for f_name, f_desc in sr["features"].items():
+                f_desc_exploded = [x.strip() for x in f_desc.split(',')]
+                if f_name not in self.feature_index:
+                    self.feature_index[f_name] = {}
+                for _d in f_desc_exploded:
+                    if not _d:
+                        continue
+
+                    if _d not in self.feature_index[f_name]:
+                        self.feature_index[f_name][_d] = []
+                    self.feature_index[f_name][_d].append(i)
+
+    def init_shadow_registry(self):
         if not len(self.shadow_registry):
             self.shadow_registry = [None] * len(self.image_files)
 
@@ -5024,6 +5064,7 @@ class lora_tag_helper(TkinterDnD.Tk):
             item = self.get_item_from_file(self.image_files[index])
 
         self.shadow_registry[index] = item
+
         return item
 
     #Gather known feature set
@@ -5128,6 +5169,9 @@ class lora_tag_helper(TkinterDnD.Tk):
             if not answer:
                 return
             
+        self.shadow_registry = {}
+        self.feature_index = {}
+
         self.known_features = {}
         self.clear_ui()
         if(not self.dataset_viewer_window == None):
@@ -5179,6 +5223,8 @@ class lora_tag_helper(TkinterDnD.Tk):
 
             # awas, inflate shadow registry here
             self.update_shadow_registry(index, item)
+            # rebuild the feature index. not very efficient
+            self.rebuild_feature_index()
 
         self.build_known_feature_checklists()
 
@@ -5655,6 +5701,8 @@ class lora_tag_helper(TkinterDnD.Tk):
             splitext(file)[0] + ".json")
 
         self.update_shadow_registry(self.file_index, trimmed_item)
+        # rebuild the feature index. not very efficient
+        self.rebuild_feature_index()
         self.update_known_feature_checklists()
 
     def autosave_toggle(self):
