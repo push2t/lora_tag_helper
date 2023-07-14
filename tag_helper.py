@@ -3204,6 +3204,16 @@ class dataset_viewer(object):
         self.controls_box_item_count += 1
         self.form_frame.bind_all("<Control-h>", self.hide_selection)
 
+        # Button to hide selected images
+        self.invert_selection_btn = tk.Button(
+            self.controls_box, text= "Invert Selection", 
+            command=self.invert_selection,
+        )
+        self.invert_selection_btn.grid(row=0, column=self.controls_box_item_count, padx=4, pady=2, sticky="nsew")
+        self.controls_box_item_count += 1
+        self.form_frame.bind_all("<Control-i>", self.invert_selection)
+
+
         # Button to show all hidden images.
         self.show_hidden_btn = tk.Button(self.controls_box, text= "Show All", 
                                command=self.show_hidden,
@@ -3571,6 +3581,15 @@ class dataset_viewer(object):
                 entry.hide_image(True)
 
         self.update_visible_info()
+
+    def invert_selection(self, event=None):
+        if len(self.selected_entries):
+            inverted_indices = list(map(lambda e: e.index, self.selected_entries))
+
+            self.deselect_all_entries()
+            for entry in self.ui_entries:
+                if entry.index not in inverted_indices:
+                    self.select_entry(entry)
 
     def hide_selection(self,event=None):    
         for entry in self.selected_entries:
