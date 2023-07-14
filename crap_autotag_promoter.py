@@ -46,7 +46,7 @@ def do_folder(path, out_path, features_whitelist):
         for (feature,category) in new_features:
             if category not in _features:
                 _features[category] = []
-                _features[category].append(feature)
+            _features[category].append(feature)
 
         for category, features in _features.items():
             json_data["features"][category] = ", ".join(features)
@@ -113,6 +113,7 @@ def promote_features(auto_components, features_whitelist):
 
     # if an auto component is in feature whitelist
     # remove it from auto components and add it to features
+
 
     new_features = set()
     new_components = OrderedDict()
