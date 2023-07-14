@@ -20,7 +20,7 @@ def load_json(path):
             return d
     except FileNotFoundError:
         return {
-            "artist": "unknown",
+            "artist": "build_meta.py",
             "features": {},
             "automatic tags": "",
         }
@@ -67,9 +67,9 @@ def main(args):
     superset = collapse_superset(superset)
 
     result = {
-        "author": "build_meta.py",
+        "artist": "build_meta.py",
         "features": superset,
-        "automatic tags": "",
+        "automatic_tags": "",
     }
 
     with open(args.out_file, "w") as fh:

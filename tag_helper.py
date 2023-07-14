@@ -20,6 +20,7 @@ import tkinter as tk
 from tkinter import ttk
 import pynput
 from pprint import pprint, pformat
+from deepdiff import DeepDiff
 from functools import partial
 import re
 
@@ -6116,9 +6117,17 @@ class lora_tag_helper(TkinterDnD.Tk):
         if not self.autosave.get():
             #print("JSON differences: " + str(diff(self.get_item_from_ui(), self.get_item_from_file(json_file))))
             if(self.get_item_from_ui() != self.get_item_from_file(json_file)):
+
+                diff_str = pformat(DeepDiff(
+                    self.get_item_from_ui(),
+                    self.get_item_from_file(json_file)
+                ))
+                print("Drift between UI state and JSON file:\n" + diff_str)
+                #__import__("IPython").embed()
+
                 answer = askyesno(parent=self,
                                 title='Save unsaved data?',
-                                message='You have unsaved changes. Save JSON now?')
+                                message='You have unsaved changes. Save JSON now?\n' + diff_str)
 
         if answer or self.autosave.get():
             defaults = self.get_defaults()
