@@ -1690,6 +1690,34 @@ class generate_lora_subset_popup(object):
             tgt_prefix = splitext(tgt_image)[0]
             
 
+            # reorder the tags according to no sensible reason
+            realorder = [
+                "model",
+                "build",
+                "boobs",
+                "boobsize",
+                "booty",
+                "bootysize",
+                "belly",
+                "bellysize",
+                "lips",
+                "lipsize"
+            ]
+
+            kucks = dict()
+            for ro in realorder:
+                kucks[ro] = 1
+
+            for f in item["features"]:
+                kucks[f] = 1
+
+            realfeatures = dict()
+            for k in kucks.keys():
+                if k in item["features"]:
+                    realfeatures[k] = item["features"][k]
+
+            item["features"] = realfeatures
+
             #Save .txt to subset folder
             caption = ""
             if self.include_lora_name.get():
@@ -3325,12 +3353,15 @@ class dataset_viewer(object):
         self.update_selection_info()
 
     def apply_feature_to_selection(self,iid,remove):
-        selected_entry = self.parent.file_index
         for entry in self.selected_entries:
-            self.apply_feature(iid,remove,entry)
-        self.parent.set_ui(selected_entry)
-        self.parent.file_index = selected_entry
-
+            item = self.parent.get_item_from_file(entry.file)
+            item["features"] = self.parent.simulate_feature_clicked(iid, item["features"],remove)
+            self.parent.write_item_to_file(
+                item,
+                splitext(entry.file)[0] + ".json")
+            print(iid + " {action}".format(action="added to" if remove else "removed from") + basename(entry.file))
+        self.parent.set_ui(self.parent.file_index)
+        
         # redraw the feature filter box, because we probably just changed its item count
         self.do_feature_filter_box()
 
@@ -4844,6 +4875,105 @@ class lora_tag_helper(TkinterDnD.Tk):
             print(traceback.format_exc())
         self.enable_feature_tracing()
         self.feature_modified(self.features[0][0]["var"].get())
+
+    def simulate_feature_clicked(self, iid, features, enable):        
+        try:            
+            tv = self.feature_checklist_treeview                
+
+            feature_iids = tv.get_children()
+            noun_iids = []
+            desc_iids = []
+            for feature in feature_iids:
+                for noun in tv.get_children(feature):
+                    noun_iids.append(noun)
+            for noun in noun_iids:
+                for desc in tv.get_children(noun):
+                    desc_iids.append(desc)
+
+            tree = [iid]
+            while tv.parent(tree[0]):
+                tree.insert(0, tv.parent(tree[0]))
+
+
+            #Find the row that matches this feature (if any)
+            in_feature = ""
+            for in_feature in features:
+                if(in_feature.strip() == tree[0].strip()):
+                    break
+            if in_feature.strip() != tree[0].strip():
+                in_feature = ""
+
+            #Find the last component that matches this noun (if any)
+            if in_feature in features:
+                desc = features[in_feature]
+            else:
+                desc = ""
+            components = []
+            this_component = ""
+            feature = tv.item(tree[0], "text")[2:].strip()
+            noun = ""
+            adjective = ""
+            if len(tree) > 1:
+                noun = tv.item(tree[1], "text")[2:].strip()
+                if in_feature in features:
+                    components = [c.strip() for c in desc.split(",")]
+                    for c in reversed(components):
+                        if c.endswith(noun):
+                            this_component = c
+                            break
+            if len(tree) > 2:
+                adjective = tv.item(tree[2], "text")[2:].strip()
+
+            if enable:
+                #Make a new feature row if necessary and set it.
+                if in_feature not in features:
+                    in_feature = feature
+                    features[feature] = ""
+
+                #If this is a noun, and the noun isn't already in the
+                #description, then add it.
+                if len(tree) > 1 and not this_component.endswith(noun):
+                    if desc != "":
+                        desc += f", {noun}"
+                    else:
+                        desc = f"{noun}"
+                    features[in_feature] = desc
+                    this_component = f"{noun}"
+                    if components != ['']:
+                        components.append(this_component)
+                    else:
+                        components = [this_component]
+
+                #If this is an adjective, and it isn't already in the component,
+                #then prepend it before the noun.
+                if len(tree) > 2 and adjective not in this_component:
+                    new_component = f"{adjective} {noun}".join(this_component.rsplit(noun, 1))
+                    for i in reversed(range(len(components))):
+                        if components[i] == this_component:
+                            components[i] = new_component
+                    features[in_feature] = ", ".join(components)
+
+            else:
+                #If this is a feature, remove the entire feature row.
+                if len(tree) == 1 and in_feature in features:
+                    del features[in_feature]
+
+                #If this is a noun, remove the relevant component.
+                if len(tree) == 2 and this_component != "":
+                    components.remove(this_component)
+                    features[in_feature] = ", ".join(components)
+
+                #If this is an adjective, remove it from the relevant component.
+                if len(tree) == 3 and adjective in this_component:
+                    new_component = this_component.replace(f"{adjective} ", "")
+                    for i in reversed(range(len(components))):
+                        if components[i] == this_component:
+                            components[i] = new_component.strip()
+                    features[in_feature] = ", ".join(components)
+                 
+        except:
+            print(traceback.format_exc())
+        return features
 
     def feature_right_clicked(self, event = None):
         #print("f right click iid: " + str(iid))
