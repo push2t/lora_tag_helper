@@ -64,10 +64,10 @@ def validate_filenames(filenames):
     meta_extensions = [f for f in filenames if os.path.splitext(f)[1].lower() in META_EXTENSIONS]
 
     if len(image_files) != 1:
-        raise ValueError(f"Expected exactly one image file, found {len(image_files)}.")
+        raise ValueError(f"Expected exactly one image file, found {len(image_files)}\n{filenames}")
     
     if len(caption_files) != 1:
-        raise ValueError(f"Expected exactly one caption file, found {len(caption_files)}.")
+        raise ValueError(f"Expected exactly one caption file, found {len(caption_files)}\n{filenames}")
     
     return (
         image_files[0],

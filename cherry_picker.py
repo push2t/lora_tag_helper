@@ -17,7 +17,8 @@ def find_and_copy_file(input_dir, output_dir, filename, superset, flat_superset)
     matched = 0
     for root, _, files in os.walk(input_dir):
         base_name, _ = os.path.splitext(filename)
-        matched_files = [f for f in files if f.startswith(base_name)]
+        #matched_files = [f for f in files if f.startswith(base_name)]
+        matched_files = [f for f in files if re.match(rf'^{re.escape(base_name)}\.[^.]+$', f)]
 
         if not matched_files:
             continue
